@@ -1,0 +1,8 @@
+--style=1tbs
+--min-conditional-indent=0
+--max-continuation-indent=50
+--align-pointer=name
+--break-closing-braces
+--break-one-line-headers
+--max-code-length=80
+
