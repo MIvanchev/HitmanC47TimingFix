@@ -13,7 +13,7 @@ for asm_file in "$PATCH_DIR"/*.asm; do
   as -msyntax=intel -mnaked-reg -32 -march=i386+387 -o "$obj_file" "$asm_file" || exit
   ld -melf_i386 --oformat=binary -e 0 -Ttext=0 -o "$hex_file" "$obj_file" || exit
 
-  echo "$module $address:"
+  echo "$module 0x$address :"
   echo
   od -A none -t x1 "$hex_file" || exit
   echo

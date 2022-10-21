@@ -58,3 +58,7 @@ constant according to your preferrence.
 This project is licensed under the 3-Clause BSD License. See the
 [license file](LICENSE) for the full text.
 
+This project uses the library [md5-c](https://github.com/Zunawe/md5-c).
+
+See [Hitman: Codename 47 @ GoG](https://www.gog.com/en/game/hitman_codename_47)
+for more info on the copyright and license of the game itself.
