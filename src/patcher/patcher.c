@@ -467,7 +467,6 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prevInst, LPSTR cmdLine,
     return 0;
 
 fail_backup_write:
-fail_backup_open_write:
 fail_backup_rewind:
 fail_patch:
 fail_invalid_backup_data:

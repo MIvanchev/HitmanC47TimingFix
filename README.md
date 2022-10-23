@@ -10,14 +10,17 @@ technically-inclined persons.
 Use at your own risk and discretion. I assume no responsibility for any damage
 resulting from using this project.
 
+Please report any bugs and issues with the patch so I can make it better. It
+is considered work in progress until I get some feedback on how it behaves in
+the wild.
+
 ## Supported versions of the game
 
 This patch is exclusively for version b192 of the game as reported in the game's
 main menu. I have exclusively used the GOG version of the game for development
 and testing. It should still work with the Steam or the CD versions.
 The installer verifies the checksums so if the installation is successfull the
-game will most likely work fine. Let me know if you have any problems. This is
-considered work in progress until I get some feedback.
+game will most likely work fine. Let me know if you have any problems.
 
 ## How to install?
 
