@@ -1,0 +1,23 @@
+version: 0.1.{build}
+image: Ubuntu2004
+
+clone_depth: 1
+
+platform: x86
+
+configuration: Release
+
+install:
+    - sudo DEBIAN_FRONTEND=noninteractive apt-get install -y gcc-mingw-w64-i686
+
+build:
+    verbosity: minimal
+
+build_script:
+    - cd $APPVEYOR_BUILD_FOLDER
+    - i686-w64-mingw32-gcc-win32 -mtune=generic -mwindows -O2 -Wall -s -o patcher.exe src/patcher/*.c
+
+artifacts:
+  - path: patcher.exe
+    name: patcher
+

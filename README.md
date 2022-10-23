@@ -1,6 +1,7 @@
 # Hitman: Codename 47 Speed/Timing Fix
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![Build status](https://ci.appveyor.com/api/projects/status/s96nc560pf8pjdd2?svg=true)](https://ci.appveyor.com/project/MIvanchev/hitmanc47timingfix)
 
 This project provides an unofficial binary patch for the 2000 PC game Hitman:
 Codename 47 which fixes the problem that the game runs too fast on modern
