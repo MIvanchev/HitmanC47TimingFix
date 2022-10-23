@@ -27,15 +27,24 @@ game will most likely work fine. Let me know if you have any problems.
 
 Download the latest [`patcher.exe`](https://github.com/MIvanchev/HitmanC47TimingFix/releases/download/2022-10-23-15-30/patcher.exe)
 to the game's directory (it should be in the same directory as `hitman.exe`)
-and run it by double clicking. If you're not on Windows run it through Wine.
-The patcher will tell you how the patching went. You might have to run the file
-as administrator on Windows.
+and run it by double clicking. If it doesn't work right away, you might have to
+run it as an administrator. If you're not on Windows run it through Wine.
+The patcher will tell you how the patching went.
 
 ## How to uninstall?
 
 The patcher creates a backup `.BAK` file for every files it modifies. To
 uninstall, just overwrite each of the files with their corresponding backup
 file.
+
+## How to build?
+
+The patcher is easily compiled with MinGW through, say:
+`mingw32-gcc -mwindows -o test.exe src\patcher\*.c`. Look at
+the [AppVeyor file](https://raw.githubusercontent.com/MIvanchev/HitmanC47TimingFix/main/appveyor.yml)
+for more info. If you change the assembly code, you need to run
+`compile-patch.sh` first, then copy the compiled byte code and target addresses
+to `src/patcher/patcher.c` and then compile the patcher.
 
 ## How to set a custom FPS?
 
