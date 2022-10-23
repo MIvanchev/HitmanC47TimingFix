@@ -25,9 +25,10 @@ game will most likely work fine. Let me know if you have any problems.
 
 ## How to install?
 
-Download the latest `patcher.exe` to the game's directory (it should be in the
-same directory as `hitman.exe`) and run it by double clicking. If you're not on
-Windows run it through Wine. The patcher will tell you how the patching went.
+Download the latest [`patcher.exe`](https://github.com/MIvanchev/HitmanC47TimingFix/releases/download/2022-10-23-15-30/patcher.exe)
+to the game's directory (it should be in the same directory as `hitman.exe`)
+and run it by double clicking. If you're not on Windows run it through Wine.
+The patcher will tell you how the patching went.
 
 ## How to uninstall?
 
@@ -44,8 +45,8 @@ at location `000112EF` to your desired FPS.
 
 The game uses the CPU instruction RDTSC to keep track of how much time passes
 between the frames to update the state: camera, physics, sounds etc. RDTSC
-returns a value which is incremented every CPU cycle and is now considered [a very
-poor form of timing](https://learn.microsoft.com/en-us/windows/win32/dxtecharts/game-timing-and-multicore-processors)
+returns a value which is incremented every CPU cycle and is now considered
+[a very poor form of timing](https://learn.microsoft.com/en-us/windows/win32/dxtecharts/game-timing-and-multicore-processors)
 for numerous reasons, one being that the frequency of modern CPUs is not
 constant. The recommended way of obtaining timestamps on Windows is through the
 API functions [QueryPerformanceFrequency](https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancefrequency)
