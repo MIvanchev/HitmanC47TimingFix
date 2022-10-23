@@ -1,9 +1,14 @@
 # Hitman: Codename 47 Speed/Timing Fix
 
+[![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+
 This project provides an unofficial binary patch for the 2000 PC game Hitman:
 Codename 47 which fixes the problem that the game runs too fast on modern
 hardware. The mechanics of the patch are explained for fellow hackers and
 technically-inclined persons.
+
+Use at your own risk and discretion. I assume no responsibility for any damage
+resulting from using this project.
 
 ## Supported versions of the game
 
@@ -14,11 +19,22 @@ The installer verifies the checksums so if the installation is successfull the
 game will most likely work fine. Let me know if you have any problems. This is
 considered work in progress until I get some feedback.
 
-## Installation
+## How to install?
 
 Download the latest `patcher.exe` to the game's directory (it should be in the
 same directory as `hitman.exe`) and run it by double clicking. If you're not on
 Windows run it through Wine. The patcher will tell you how the patching went.
+
+## How to uninstall?
+
+The patcher creates a backup `.BAK` file for every files it modifies. To
+uninstall, just overwrite each of the files with their corresponding backup
+file.
+
+## How to set a custom FPS?
+
+After applying the patch, open `system.dll` in a hex editor and change the byte
+at location `000112EF` to your desired FPS.
 
 ## Cause
 
