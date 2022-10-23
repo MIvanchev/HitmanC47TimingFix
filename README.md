@@ -19,7 +19,8 @@ the wild.
 
 This patch is exclusively for version b192 of the game as reported in the game's
 main menu. I have exclusively used the GOG version of the game for development
-and testing. It should still work with the Steam or the CD versions.
+and testing. There is currently one report of the Steam version not being
+compatible. I don't know whether the patch will work with the CD version.
 The installer verifies the checksums so if the installation is successfull the
 game will most likely work fine. Let me know if you have any problems.
 
@@ -42,7 +43,7 @@ file.
 The patcher is easily compiled with MinGW through, say:
 `mingw32-gcc -mwindows -o test.exe src\patcher\*.c`. Look at
 the [AppVeyor file](https://raw.githubusercontent.com/MIvanchev/HitmanC47TimingFix/main/appveyor.yml)
-for more info. If you change the assembly code, you need to run
+for more info. If you modify the assembly code, you need to run
 `compile-patch.sh` first, then copy the compiled byte code and target addresses
 to `src/patcher/patcher.c` and then compile the patcher.
 
