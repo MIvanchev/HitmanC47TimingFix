@@ -20,6 +20,6 @@ for asm_file in "$PATCH_DIR"/*.s; do
   echo
 done
 
-rm "$PATCH_DIR"/*.o
-rm "$PATCH_DIR"/*.hex
+rm "$PATCH_DIR"/*.o || exit
+rm "$PATCH_DIR"/*.hex || exit
 
