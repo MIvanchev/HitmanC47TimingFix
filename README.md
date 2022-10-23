@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Build status](https://ci.appveyor.com/api/projects/status/s96nc560pf8pjdd2?svg=true)](https://ci.appveyor.com/project/MIvanchev/hitmanc47timingfix)
 
-This project provides an unofficial binary patch for the 2000 PC game Hitman:
+This project provides an **unofficial** binary patch for the 2000 PC game Hitman:
 Codename 47 which fixes the problem that the game runs too fast on modern
 hardware. The mechanics of the patch are explained for fellow hackers and
 technically-inclined persons.
@@ -28,7 +28,8 @@ game will most likely work fine. Let me know if you have any problems.
 Download the latest [`patcher.exe`](https://github.com/MIvanchev/HitmanC47TimingFix/releases/download/2022-10-23-15-30/patcher.exe)
 to the game's directory (it should be in the same directory as `hitman.exe`)
 and run it by double clicking. If you're not on Windows run it through Wine.
-The patcher will tell you how the patching went.
+The patcher will tell you how the patching went. You might have to run the file
+as administrator on Windows.
 
 ## How to uninstall?
 
