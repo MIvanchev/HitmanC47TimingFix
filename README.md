@@ -19,18 +19,22 @@ the wild.
 
 This patch is exclusively for version b192 of the game as reported in the game's
 main menu. I have exclusively used the GOG version of the game for development
-and testing. There is currently one report of the Steam version not being
-compatible. I don't know whether the patch will work with the CD version.
-The installer verifies the checksums so if the installation is successfull the
-game will most likely work fine. Let me know if you have any problems.
+and testing but other distributions are supported as well. The installer
+verifies the checksums so if the installation is successfull the game will most
+likely work fine. Let me know if you have any problems.
 
 ## How to install?
 
-Download the latest [`patcher.exe`](https://github.com/MIvanchev/HitmanC47TimingFix/releases/download/2022-10-23-15-30/patcher.exe)
-to the game's directory (it should be in the same directory as `hitman.exe`)
-and run it by double clicking. If it doesn't work right away, you might have to
-run it as an administrator. If you're not on Windows run it through Wine.
-The patcher will tell you how the patching went.
+From the table below, download the latest patcher for your distribution to
+the game's main directory (directory containing `hitman.exe`)
+and lauch it by double clicking. You might have to run it as an administrator.
+If you're not on Windows, simply run it through Wine. The patcher will tell you
+how the patching went.
+
+| Game distribution | Patcher |
+| ----------------- | ------- |
+| GoG, version b192 | patcher-gog |
+| Steam & CD, version b192 | patcher-other |
 
 ## How to uninstall?
 
@@ -40,12 +44,14 @@ file.
 
 ## How to build?
 
-The patcher is easily compiled with MinGW through, say:
-`mingw32-gcc -mwindows -o test.exe src\patcher\*.c`. Look at
-the [AppVeyor file](https://raw.githubusercontent.com/MIvanchev/HitmanC47TimingFix/main/appveyor.yml)
-for more info. If you modify the assembly code, you need to run
-`compile-patch.sh` first, then copy the compiled byte code and target addresses
-to `src/patcher/patcher.c` and then compile the patcher.
+First you need to generate the header with the patches and their locations for
+the different game distribuitions (GoG, Steam, CD). Do this by
+`./compile-patch.sh > patches.h`. The compile the patcher with MinGW for the
+distribution you want by
+`mingw32-gcc -mwindows -DPATCH_FOR_GOG -o patch-gog.exe src\patcher\*.c`.
+Look at the
+[AppVeyor file](https://raw.githubusercontent.com/MIvanchev/HitmanC47TimingFix/main/appveyor.yml)
+for more info.
 
 ## How to set a custom FPS?
 

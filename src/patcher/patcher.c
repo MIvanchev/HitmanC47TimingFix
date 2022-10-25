@@ -33,7 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <windows.h>
 #include <assert.h>
+#include <string.h>
+#include <malloc.h>
 #include "md5.h"
+#include "patches.h"
 
 #define BUFLEN(b) (sizeof((b)) / sizeof((b)[0]))
 
@@ -44,17 +47,10 @@ struct section {
     DWORD rawDataPtr;
 };
 
-struct patched_bytes {
-    DWORD addr;
-    const char *bytes;
-};
-
 static const char *filename = "SYSTEM.DLL";
 static const char *backupFilename = "SYSTEM.DLL.BAK";
 static DWORD fileSizeInBytes = 278528;
 static DWORD imageBase = 0x0FFA0000;
-static char *oldMd5 = "90b1ac786841bdd5f45077b97fdb83ee";
-static char *newMd5 = "a59bc56db5feeb7c8537d1608bbb942d";
 
 static struct section sections[] = {
     { ".text", 0x1000, 0x32000, 0x1000 },
@@ -63,35 +59,15 @@ static struct section sections[] = {
     { NULL, 0 }
 };
 
-/* *INDENT-OFF* */
-static struct patched_bytes changes[] = {
-    { 0x0FFAE159, "8d 5d e8 53 ff 15 ec ae fd 0f 90 90 90 90 90" },
-    { 0x0FFAE222, "8d 5d f4 53 ff 15 ec ae fd 0f 90 90 90 90 90" },
-    { 0x0FFB1080, "e8 63 02 00 00 90 90 90 90 90" },
-    { 0x0FFB1230, "dd 81 61 0a 00 00 dc 1d 30 37 fd 0f df e0 f6 c4"
-                  "40 75 01 c3 50 50 53 89 cb 56 ba b8 ae fd 0f 52"
-                  "b2 ec 52 b2 d4 52 b2 a8 52 ff 15 78 30 fd 0f 89"
-                  "c6 50 ff 15 5c 30 fd 0f 5a 89 02 56 ff 15 5c 30"
-                  "fd 0f 8d 74 24 08 56 ff d0 df 2e dd 1e 5e a1 24"
-                  "30 fd 0f 8b 08 8a 81 f1 38 00 00 84 c0 75 2f 8b"
-                  "15 28 30 fd 0f 8b 0a 8b 01 68 dc 08 00 00 68 68"
-                  "a2 fd 0f ff 50 20 8b 54 24 08 8b 08 52 8b 54 24"
-                  "08 52 68 cc aa fd 0f 50 ff 51 2c 83 c4 10 a1 44"
-                  "9a fd 0f 85 c0 75 06 ff 15 4c 9a fd 0f 8b 44 24"
-                  "04 8b 4c 24 08 89 83 61 0a 00 00 89 8b 65 0a 00"
-                  "00 5b 58 58 c3 8d 76 00 75 04 dd d8 d9 e8 6a 2d"
-                  "db 04 24 58 d9 e8 d8 f1 d8 da df e0 f6 c4 41 75"
-                  "04 d8 c9 dc c9 dd d8 c3" },
-    { 0x0FFB1738, "89 03 89 43 04 eb 1c" },
-    { 0x0FFB174C, "a1 ec ae fd 0f 8d 5d ec 85 c0 74 e0 53 ff d0" },
-    { 0x0FFDAEA8, "6b 65 72 6e 65 6c 33 32 2e 64 6c 6c 00 00 00 00"
-                  "51 75 65 72 79 50 65 72 66 6f 72 6d 61 6e 63 65"
-                  "46 72 65 71 75 65 6e 63 79 00 00 00 51 75 65 72"
-                  "79 50 65 72 66 6f 72 6d 61 6e 63 65 43 6f 75 6e"
-                  "74 65 72 00" },
-    { 0, NULL }
-};
-/* *INDENT-ON* */
+#ifdef PATCH_FOR_GOG
+static char *oldMd5 = "90b1ac786841bdd5f45077b97fdb83ee";
+static char *newMd5 = "253fcba7080e4150e7a9de3e436f5403";
+#elif defined PATCH_FOR_OTHER
+static char *oldMd5 = "6d3bcfab731dbbbf555d054ccbad6eda";
+static char *newMd5 = "6aac0e8144be365d7f50407bb67d6a07";
+#else
+#error You need to specify which game distribution to build the patcher for.
+#endif
 
 static void showMsg(int type, const char *msg, ...)
 {
@@ -199,6 +175,8 @@ static int patchData(BYTE *data)
 {
     struct section *sec;
     struct patched_bytes *change;
+    struct patched_bytes *ch;
+    DWORD prevChangeAddr;
     DWORD addrFirst;
     DWORD addrLast;
     const char *bytes;
@@ -212,14 +190,41 @@ static int patchData(BYTE *data)
 
     res = 1;
     nextByteIdx = 0;
+    prevChangeAddr = 0;
 
     assert(data);
     assert(res);
     assert(!nextByteIdx);
+    assert(!prevChangeAddr);
 
     /* TODO: Add checks for undefined behavior. */
 
-    for (change = changes; change->bytes; change++) {
+    while (1) {
+
+        /* Find the next patched location. */
+
+        change = NULL;
+
+        for (ch = changes; ch->bytes; ch++) {
+            if (change && ch->addr == change->addr && ch != change) {
+                showError("Internal patcher error, multiple change sets with "
+                          "address 0x%08lX present in the list.",
+                          (unsigned long) change->addr);
+                res = 0;
+                break;
+            }
+
+            if (ch->addr > prevChangeAddr
+                && (!change || ch->addr < change->addr)) {
+                change = ch;
+            }
+        }
+
+        if (!change) {
+            break;
+        }
+
+        prevChangeAddr = change->addr;
 
         /* Find the section */
 
@@ -244,8 +249,8 @@ static int patchData(BYTE *data)
                        + (change->addr - sec->virtualAddr - imageBase);
 
         if (firstByteIdx < nextByteIdx) {
-            showError("Internal patcher error, the change sets should be "
-                      "listed in ascending order and must not overlap.");
+            showError("Internal patcher error, the change sets must not "
+                      "not overlap.");
             res = 0;
             break;
         }
@@ -302,8 +307,17 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prevInst, LPSTR cmdLine,
     HANDLE backupHandle;
     BYTE *backupData;
     DWORD bytesRead;
+    WIN32_FIND_DATA findData;
+    HANDLE findHandle;
+    BOOL findHandleClosed;
+    char *backupFilenameInCorrectCase;
     char checksum[33];
     int res;
+
+    fileData = NULL;
+    backupData = NULL;
+    res = 1;
+    findHandleClosed = FALSE;
 
     assert(filename);
     assert(strlen(filename));
@@ -313,10 +327,8 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prevInst, LPSTR cmdLine,
     assert(strcmp(filename, backupFilename));
     assert(fileSizeInBytes);
     assert(BUFLEN(checksum) >= 32 + 1);
-
-    fileData = NULL;
-    backupData = NULL;
-    res = 1;
+    assert(!findHandleClosed);
+    assert(res);
 
     /* Read file to be patched and verify the checksum. */
 
@@ -329,7 +341,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prevInst, LPSTR cmdLine,
         goto fail_open;
     }
 
-    if (!(fileData = malloc(fileSizeInBytes + 1))) {
+    if (!(fileData = malloc((fileSizeInBytes + 1) * sizeof(BYTE)))) {
         showError("Patching failed. Couldn't allocate %lu bytes of memory.",
                   (unsigned long) (fileSizeInBytes + 1));
         goto fail_alloc_file_data;
@@ -369,12 +381,50 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prevInst, LPSTR cmdLine,
         }
     }
 
+    /* Determine the filename according to the file system so we create a backup
+    ** in exactly the same letter case.
+    */
+
+    findHandle = FindFirstFile(filename, &findData);
+    if (findHandle == INVALID_HANDLE_VALUE) {
+        showError("Patching failed. Failed to query the correct file system "
+                  "name of file %s. Try running the patcher again.",
+                  filename);
+        goto fail_find_file;
+    }
+
+    if (_stricmp(filename, findData.cFileName)) {
+        showError("Patching failed. Failed to query the correct file system "
+                  "name of file %s. The query returned the result %s. This is "
+                  "likely a bug in the patcher, please report it.",
+                  filename, findData.cFileName);
+        goto fail_filename_in_correct_case;
+    }
+
+    backupFilenameInCorrectCase = _alloca((strlen(backupFilename) + 1)
+                                          * sizeof(char));
+
+    strcpy(backupFilenameInCorrectCase, findData.cFileName);
+    strcat(backupFilenameInCorrectCase, ".bak");
+
+    if (_stricmp(backupFilename, backupFilenameInCorrectCase)) {
+        showError("Patching failed. Failed to derive the file system name for "
+                  "the backup file %s. The process generated the file name %s. "
+                  "This is likely a bug in the patcher, please report it.",
+                  backupFilename, backupFilenameInCorrectCase);
+        goto fail_backup_filename_in_correct_case;
+    }
+
+    FindClose(findHandle);
+    findHandleClosed = TRUE;
+
     /* Read an existing backup file and verify the contents or create a new
     ** backup file.
     */
 
-    backupHandle = CreateFile(backupFilename, GENERIC_READ | GENERIC_WRITE, 0,
-                              NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    backupHandle = CreateFile(backupFilenameInCorrectCase,
+                              GENERIC_READ | GENERIC_WRITE, 0, NULL,
+                              OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (backupHandle == INVALID_HANDLE_VALUE) {
         showError("Patching failed. Couldn't open or create the backup file "
@@ -383,7 +433,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prevInst, LPSTR cmdLine,
     }
 
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
-        if (!(backupData = malloc(fileSizeInBytes + 1))) {
+        if (!(backupData = malloc((fileSizeInBytes + 1) * sizeof(BYTE)))) {
             showError("Patching failed. Couldn't allocate %lu bytes of memory.",
                       (unsigned long) (fileSizeInBytes + 1));
             goto fail_alloc_backup_data;
@@ -436,6 +486,16 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prevInst, LPSTR cmdLine,
         goto fail_patch;
     }
 
+    getMd5Checksum(fileData, fileSizeInBytes, checksum);
+    
+    if (strcmp(checksum, newMd5)) {
+        showError("Internal patcher error, unexpected MD5 checksum of the "
+                  "patched data for the file %s. A backup file %s was created "
+                  "which you need to delete manually if not needed.", filename);
+        goto fail_invalid_new_checksum;
+
+    }
+
     if (SetFilePointer(fileHandle, 0, NULL,
                        FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
         showError("Patching failed. Couldn't prepare the file %s for "
@@ -468,6 +528,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prevInst, LPSTR cmdLine,
 
 fail_backup_write:
 fail_backup_rewind:
+fail_invalid_new_checksum:
 fail_patch:
 fail_invalid_backup_data:
 fail_invalid_backup_size:
@@ -478,6 +539,12 @@ fail_backup_read:
 fail_alloc_backup_data:
     CloseHandle(backupHandle);
 fail_backup_open:
+fail_filename_in_correct_case:
+fail_backup_filename_in_correct_case:
+    if (!findHandleClosed) {
+        FindClose(findHandle);
+    }
+fail_find_file:
 fail_invalid_checksum:
 fail_already_patched:
 fail_invalid_file_size:
