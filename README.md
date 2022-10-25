@@ -56,7 +56,8 @@ for more info.
 ## How to set a custom FPS?
 
 After applying the patch, open `system.dll` in a hex editor and change the byte
-at location `000112EF` to your desired FPS.
+at location `000112EF` for the GOG version and `000112DF` for other versions
+to your desired FPS.
 
 ## Cause
 
