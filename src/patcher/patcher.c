@@ -61,10 +61,10 @@ static struct section sections[] = {
 
 #ifdef PATCH_FOR_GOG
 static char *oldMd5 = "90b1ac786841bdd5f45077b97fdb83ee";
-static char *newMd5 = "253fcba7080e4150e7a9de3e436f5403";
+static char *newMd5 = "904228e19a6fc01d21167d3202bd89b2";
 #elif defined PATCH_FOR_OTHER
 static char *oldMd5 = "6d3bcfab731dbbbf555d054ccbad6eda";
-static char *newMd5 = "6aac0e8144be365d7f50407bb67d6a07";
+static char *newMd5 = "2d371ab992d583ed4221b915d82cba25";
 #else
 #error You need to specify which game distribution to build the patcher for.
 #endif
@@ -491,7 +491,8 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prevInst, LPSTR cmdLine,
     if (strcmp(checksum, newMd5)) {
         showError("Internal patcher error, unexpected MD5 checksum of the "
                   "patched data for the file %s. A backup file %s was created "
-                  "which you need to delete manually if not needed.", filename);
+                  "which you need to delete manually if not needed.",
+                  filename, backupFilename);
         goto fail_invalid_new_checksum;
 
     }

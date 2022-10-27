@@ -31,12 +31,5 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-fldz
-fistp qword ptr [ebx]
-test eax, eax
-jz QueryPerformanceCounter_not_loaded
-push ebx
-call eax
-QueryPerformanceCounter_not_loaded:
-ret
+    call 0x0FFBD9BF - base
 

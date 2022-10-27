@@ -31,13 +31,5 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-.ifndef invoke_QueryPerformanceCounter
-.set invoke_QueryPerformanceCounter, 0x0FFB1724
-.endif
-
-mov eax, [0x0FFDAEEC]
-lea ebx, [ebp-0x14]
-call invoke_QueryPerformanceCounter - base
-nop
-nop
+.include "dist_gog/system_0FFAE159.s"
 

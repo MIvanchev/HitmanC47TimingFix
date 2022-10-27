@@ -31,6 +31,14 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-.set scale_delta_time_to_target_fps, 0x0FFB12D8
-.include "gog/system_0FFB1080.s"
+.include "common/locations.s"
+
+    lea ebx, [ebp-0x18]
+    push ebx
+    call [handle_query_performance_counter_addr]
+    nop
+    nop
+    nop
+    nop
+    nop
 

@@ -33,14 +33,20 @@ how the patching went.
 
 | Game distribution | Patcher |
 | ----------------- | ------- |
-| GoG, version b192 | patcher-gog |
-| Steam & CD, version b192 | patcher-other |
+| GoG, version b192 | [patcher-gog](https://ci.appveyor.com/api/buildjobs/noc5rq0ebk4d2evc/artifacts/patcher-gog.exe) |
+| Steam & CD, version b192 | [patcher-other](https://ci.appveyor.com/api/buildjobs/noc5rq0ebk4d2evc/artifacts/patcher-other.exe) |
 
 ## How to uninstall?
 
 The patcher creates a backup `.BAK` file for every files it modifies. To
 uninstall, just overwrite each of the files with their corresponding backup
 file.
+
+## How to use?
+
+After applying the patch, open `hitman.ini` and add the line `Fps <n>` where 
+`<n>` is a number lower than your actual FPS. You'll have to experiment to find
+a good value. `Fps 0` has no effect, i.e. the game runs at the actual FPS.
 
 ## How to build?
 
@@ -52,12 +58,6 @@ distribution you want by
 Look at the
 [AppVeyor file](https://raw.githubusercontent.com/MIvanchev/HitmanC47TimingFix/main/appveyor.yml)
 for more info.
-
-## How to set a custom FPS?
-
-After applying the patch, open `system.dll` in a hex editor and change the byte
-at location `000112EF` for the GOG version and `000112DF` for other versions
-to your desired FPS.
 
 ## Cause
 
@@ -88,9 +88,8 @@ the game will be slowed down to its originally intended speed.
 
 The patch changes the game's code to use QueryPerformanceFrequency and 
 QueryPerformanceCounter instead of RDTSC for obtaining timestamps and scales
-the frame time proportionally as described above if the game is running at more
-than 45 FPS which I think provides the best feeling. It's easy to change this
-constant according to your preferrence. 
+the frame time proportionally as described above if the game is running too
+fast at the current FPS.
 
 ## License
 

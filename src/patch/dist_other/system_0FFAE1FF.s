@@ -31,9 +31,4 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-.asciz "kernel32.dll"
-.align 4, 0
-.asciz "QueryPerformanceFrequency"
-.align 4, 0
-.asciz "QueryPerformanceCounter"
-
+.include "dist_gog/system_0FFAE222.s"

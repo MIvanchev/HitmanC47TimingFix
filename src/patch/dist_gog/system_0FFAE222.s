@@ -31,6 +31,14 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-.set invoke_QueryPerformanceCounter, 0x0FFB1714
-.include "gog/system_0FFB174C.s"
+.include "common/locations.s"
+
+    lea ebx, [ebp-0xC]
+    push ebx
+    call [handle_query_performance_counter_addr]
+    nop
+    nop
+    nop
+    nop
+    nop
 

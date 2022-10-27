@@ -31,14 +31,12 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-.ifndef scale_delta_time_to_target_fps
-.set scale_delta_time_to_target_fps, 0x0FFB12E8
-.endif
-
-call scale_delta_time_to_target_fps - base
-nop
-nop
-nop
-nop
-nop
+    fldz
+    fistp qword ptr [ebx]
+    test eax, eax
+    jz query_performance_counter_not_loaded
+    push ebx
+    call eax
+    query_performance_counter_not_loaded:
+    ret
 

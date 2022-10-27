@@ -12,9 +12,9 @@ echo "static struct patched_bytes changes[] = {"
 
 FIRST_DISTRIB=1
 
-for distrib_path in src/patch/*; do
+for distrib_path in src/patch/dist_*; do
 
-    distrib=${distrib_path##*/}
+    distrib=${distrib_path##*_}
     distrib=${distrib^^}
 
     if [[ $FIRST_DISTRIB -eq 1 ]]; then
