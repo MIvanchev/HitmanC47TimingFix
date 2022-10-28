@@ -44,9 +44,19 @@ file.
 
 ## How to use?
 
-After applying the patch, open `hitman.ini` and add the line `Fps <n>` where 
-`<n>` is a number lower than your actual FPS. You'll have to experiment to find
-a good value. `Fps 0` has no effect, i.e. the game runs at the actual FPS.
+After applying the patch, start the game and see if the speed is now OK. If it's
+still too fast, open `hitman.ini` and add the line `Fps <n>` where
+`<n>` is a number lower than your actual FPS. You'll have to experiment to
+find a good value. For instance my Hitman runs somewhat too fast on 60 FPS
+and setting `Fps 50` makes it nicely playable. Setting `Fps 0` or a negative
+value has no effect, i.e. the game's speed will not be modified.
+
+## Are there any limitations?
+
+The patch uses time stretching to slow the game down. Unfortunately
+Hitman: Codename 47 has a number of time related bugs which might be triggered
+if the time is stretched too much, for example explosive rag doll effects
+and floating weapons. I'm working on fixing those as well.
 
 ## How to build?
 
