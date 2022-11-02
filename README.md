@@ -15,6 +15,12 @@ Please report any bugs and issues with the patch so I can make it better. It
 is considered work in progress until I get some feedback on how it behaves in
 the wild.
 
+**NOTE**: I am currently working towards fixing more issues with this game:
+
+* Adding widescreen support for all renderers with Hor+ FOV
+* Adding a 60 game updates per second limit without limiting the number
+of frames rendered
+
 ## Supported versions of the game
 
 This patch is exclusively for version b192 of the game as reported in the game's
