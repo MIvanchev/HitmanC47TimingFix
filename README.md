@@ -112,7 +112,8 @@ fast at the current FPS.
 This project is licensed under the 3-Clause BSD License. See the
 [license file](LICENSE) for the full text.
 
-This project uses the library [md5-c](https://github.com/Zunawe/md5-c).
+This project uses the libraries [md5-c](https://github.com/Zunawe/md5-c) and
+[miniz](https://github.com/richgel999/miniz).
 
 See [Hitman: Codename 47 @ GoG](https://www.gog.com/en/game/hitman_codename_47)
 for more info on the copyright and license of the game itself.
