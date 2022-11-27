@@ -57,7 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                  "to delete it before rerunning the patcher."
 #define TEXT_PLEASE_REPORT "Please report this error."
 
-/*#define VALIDATE_CHECKSUMS*/
+#define VALIDATE_CHECKSUMS
 
 struct Section {
     const char *name;
@@ -79,8 +79,8 @@ struct PatchedFile {
     int handleOpened;
     HANDLE handle;
     BOOL alreadyPatched;
+    BOOL modified;
     void *data;
-    DWORD lastChangeAddr;
 };
 
 struct PatchedFile patchedFiles[] = {
@@ -371,7 +371,8 @@ static int readFile(struct PatchedFile *file)
                       "by a failed prior patching attempt, the application "
                       "of another patch or an unsupported game version.",
                       file->nameUppercase,
-                      checksum, file->md5Unpatched);
+                      checksum,
+                      file->md5Unpatched);
             goto fail_invalid_checksum;
 #endif
         }
@@ -394,6 +395,7 @@ static int readFile(struct PatchedFile *file)
     file->handle = handle;
     file->handleOpened = TRUE;
     file->alreadyPatched = alreadyPatched;
+    file->modified = FALSE;
 
     allFilesPatched = file->alreadyPatched ? allFilesPatched : FALSE;
 
@@ -890,6 +892,10 @@ static int patchData()
                 ii++;
             }
         }
+
+        if (nextByteIdx != firstByteIdx) {
+            file->modified = TRUE;
+        }
     }
 
     return 1;
@@ -927,7 +933,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prevInst, LPSTR cmdLine,
     }
 
     for (file = patchedFiles; file->name; file++) {
-        if (!file->alreadyPatched && !writeFile(file)) {
+        if (file->modified && !writeFile(file)) {
             goto fail_write_file;
         }
     }
