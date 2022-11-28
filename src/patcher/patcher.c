@@ -36,38 +36,140 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <malloc.h>
 #include "md5.h"
+#include "miniz.h"
 #include "patches.h"
 
-#define BUFLEN(b) (sizeof((b)) / sizeof((b)[0]))
+#define BUFLEN(buf) (sizeof((buf)) / sizeof((buf)[0]))
+#define MIN(valA, valB) (((valA) <= (valB)) ? (valA) : (valB))
+#define MAX(valA, valB) (((valA) >= (valB)) ? (valA) : (valB))
 
-struct section {
+#define TEXT_RUN_AGAIN "Try running the patcher again."
+#define TEXT_CLOSE_PROGS_AND_RUN_AGAIN "Close some programs and try running " \
+                                       "the patcher again."
+#define TEXT_DELETE_AND_RUN_AGAIN "In order to run the patcher successfully " \
+                                  "you must restore the original game files " \
+                                  "and delete the backup file. A new backup " \
+                                  "file will be created by the patcher " \
+                                  "before it modifies any files."
+#define TEXT_INCONSISTENT_BACKUP "An error occured while writing the " \
+                                 "backup file %s. This file now has an " \
+                                 "inconsistent state and you need " \
+                                 "to delete it before rerunning the patcher."
+#define TEXT_PLEASE_REPORT "Please report this error."
+
+#define VALIDATE_CHECKSUMS
+
+struct Section {
     const char *name;
     DWORD virtualAddr;
     DWORD size;
     DWORD rawDataPtr;
 };
 
-static const char *filename = "SYSTEM.DLL";
-static const char *backupFilename = "SYSTEM.DLL.BAK";
-static DWORD fileSizeInBytes = 278528;
-static DWORD imageBase = 0x0FFA0000;
-
-static struct section sections[] = {
-    { ".text", 0x1000, 0x32000, 0x1000 },
-    { ".rdata", 0x33000, 0x5000, 0x33000 },
-    { ".data", 0x38000, 0x8000, 0x38000 },
-    { NULL, 0 }
+struct PatchedFile {
+    const char *name;
+    const char *nameUppercase;
+    const char *namePrefix;
+    const size_t size;
+    const DWORD imageBase;
+    const char *md5Unpatched;
+    const char *md5Patched;
+    const struct Section sections[4];
+    char *nameInFilesystemCase;
+    int handleOpened;
+    HANDLE handle;
+    BOOL alreadyPatched;
+    BOOL modified;
+    void *data;
 };
 
+struct PatchedFile patchedFiles[] = {
 #ifdef PATCH_FOR_GOG
-static char *oldMd5 = "90b1ac786841bdd5f45077b97fdb83ee";
-static char *newMd5 = "904228e19a6fc01d21167d3202bd89b2";
+    {
+        "system.dll",
+        "SYSTEM.DLL",
+        "system",
+        278528,
+        0x0FFA0000,
+        "90b1ac786841bdd5f45077b97fdb83ee",
+        "904228e19a6fc01d21167d3202bd89b2",
+        {   { ".text", 0x1000, 0x32000, 0x1000 },
+            { ".rdata", 0x33000, 0x5000, 0x33000 },
+            { ".data", 0x38000, 0x8000, 0x38000 },
+            { NULL, 0 }
+        }
+    },
+/*
+    {
+        "HitmanDlc.dlc",
+        "HITMANDLC.DLC",
+        "hitmandlc",
+        2555904,
+        0x0FCC0000,
+        "bf3e32ba24d2816adb8ba708774f1e1a",
+        "bf3e32ba24d2816adb8ba708774f1e1a",
+        {   { ".text", 0x1000, 0x1ef000, 0x1000 },
+            { ".rdata", 0x1f0000, 0x2f000, 0x1f0000 },
+            { ".data", 0x21f000, 0x25000, 0x21f000 },
+            { NULL, 0 }
+        },
+    },
+    {
+        "EngineData.dll",
+        "ENGINEDATA.DLL",
+        "enginedata",
+        249856,
+        0x0FF60000,
+        "878acb8049a6c513f6bdce4bb4f6c92c",
+        "878acb8049a6c513f6bdce4bb4f6c92c",
+        {   { ".text", 0x1000, 0x2f000, 0x1000 },
+            { ".rdata", 0x30000, 0x3000, 0x30000 },
+            { ".data", 0x33000, 0x6000, 0x33000 },
+            { NULL, 0 }
+        }
+    },
+*/
 #elif defined PATCH_FOR_OTHER
-static char *oldMd5 = "6d3bcfab731dbbbf555d054ccbad6eda";
-static char *newMd5 = "2d371ab992d583ed4221b915d82cba25";
+    {
+        "system.dll",
+        "SYSTEM.DLL",
+        "system",
+        278528,
+        0x0FFA0000,
+        "6d3bcfab731dbbbf555d054ccbad6eda",
+        "2d371ab992d583ed4221b915d82cba25",
+        {   { ".text", 0x1000, 0x32000, 0x1000 },
+            { ".rdata", 0x33000, 0x5000, 0x33000 },
+            { ".data", 0x38000, 0x8000, 0x38000 },
+            { NULL, 0 }
+        }
+    },
+/*
+    {
+        "HitmanDlc.dlc",
+        "HITMANDLC.DLC",
+        "hitmandlc",
+        2555904,
+        0x0FCC0000,
+        "9b32d467c3d62e9ec485de7b7586fed3",
+        "9b32d467c3d62e9ec485de7b7586fed3",
+        {   { ".text", 0x1000, 0x1ef000, 0x1000 },
+            { ".rdata", 0x1f0000, 0x2f000, 0x1f0000 },
+            { ".data", 0x21f000, 0x25000, 0x21f000 },
+            { NULL, 0 }
+        },
+    },
+*/
 #else
 #error You need to specify which game distribution to build the patcher for.
 #endif
+    { NULL }
+};
+
+static const char *bkpFilename = "patch-backup.zip";
+static const char *bkpFilenameUppercase = "PATCH-BACKUP.ZIP";
+static HANDLE bkpHandle;
+static BOOL allFilesPatched = TRUE;
 
 static void showMsg(int type, const char *msg, ...)
 {
@@ -85,7 +187,8 @@ static void showMsg(int type, const char *msg, ...)
 }
 
 #define showInfo(...) showMsg(MB_OK | MB_ICONINFORMATION, __VA_ARGS__)
-#define showError(...) showMsg(MB_OK | MB_ICONERROR, __VA_ARGS__)
+#define showError(...) showMsg(MB_OK | MB_ICONERROR, \
+                               "Patching failed. " __VA_ARGS__)
 
 static int hexDigitToNum(char digit)
 {
@@ -153,13 +256,14 @@ static int hexDigitToNum(char digit)
     return res;
 }
 
-static void getMd5Checksum(BYTE *data, DWORD size, char *checksum)
+static void getMd5Checksum(void *data, DWORD size, char *checksum)
 {
     MD5Context ctx;
     size_t ii;
 
     assert(data);
     assert(size);
+    assert(size < SIZE_MAX);
     assert(checksum);
 
     md5Init(&ctx);
@@ -171,11 +275,528 @@ static void getMd5Checksum(BYTE *data, DWORD size, char *checksum)
     }
 }
 
-static int patchData(BYTE *data)
+static void closeFiles(void)
 {
-    struct section *sec;
-    struct patched_bytes *change;
-    struct patched_bytes *ch;
+    struct PatchedFile *file;
+
+    for (file = patchedFiles; file->name; file++) {
+        if (file->handleOpened) {
+            CloseHandle(file->handle);
+            file->handleOpened = FALSE;
+        }
+        if (file->data) {
+            free(file->data);
+            file->data = NULL;
+        }
+        if (file->nameInFilesystemCase) {
+            free(file->nameInFilesystemCase);
+            file->nameInFilesystemCase = NULL;
+        }
+    }
+}
+
+static int readFile(struct PatchedFile *file)
+{
+    size_t nameSizeInBytes;
+    char *nameInFilesystemCase;
+    HANDLE findHandle;
+    BOOL findHandleOpened;
+    WIN32_FIND_DATAA findData;
+    HANDLE handle;
+    size_t sizeInBytes;
+    void *data;
+    DWORD bytesRead;
+    char checksum[33];
+    BOOL alreadyPatched;
+
+    alreadyPatched = FALSE;
+    findHandleOpened = FALSE;
+    nameInFilesystemCase = NULL;
+    data = NULL;
+
+    assert(file);
+    assert(!alreadyPatched);
+    assert(!findHandleOpened);
+    assert(!nameInFilesystemCase);
+    assert(!data);
+
+    findHandle = FindFirstFile(file->name, &findData);
+    if (findHandle == INVALID_HANDLE_VALUE) {
+        showError("Failed to query the file system name "
+                  "of file %s. Make sure the patcher is located in the "
+                  "game's main directory containing HITMAN.EXE and run "
+                  "the patcher again.", file->nameUppercase);
+        goto fail_find_file;
+    }
+
+    findHandleOpened = TRUE;
+
+    if (_stricmp(file->name, findData.cFileName)) {
+        showError("Failed to query the file system name of "
+                  "file %s. The query returned the result %s. This is "
+                  "likely a bug in the patcher, please report it.",
+                  file->nameUppercase, findData.cFileName);
+        goto fail_invalid_fs_case;
+    }
+
+    /* FIXME: Proper undefined behavior checks. */
+
+    nameSizeInBytes = strlen(file->name) + 1;
+    nameInFilesystemCase = malloc(nameSizeInBytes);
+    if (nameInFilesystemCase == NULL) {
+        showError("Couldn't allocate %zu bytes of memory. "
+                  TEXT_CLOSE_PROGS_AND_RUN_AGAIN,
+                  nameSizeInBytes);
+        goto fail_alloc_fs_case;
+    }
+
+    strcpy(nameInFilesystemCase, findData.cFileName);
+
+    FindClose(findHandle);
+    findHandleOpened = FALSE;
+
+    /* Read file to be patched and verify the checksum. */
+
+    handle = CreateFile(file->name, GENERIC_READ | GENERIC_WRITE, 0, NULL,
+                        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (handle == INVALID_HANDLE_VALUE) {
+        showError("Couldn't open the file %s. Make sure the "
+                  "file is not being used by another application and the "
+                  "patcher is located in the game's main directory containing "
+                  "HITMAN.EXE.",
+                  file->nameUppercase);
+        goto fail_open;
+    }
+
+    /* Allocate an additional byte of space so we can test for the expected
+    ** file size.
+    */
+
+    sizeInBytes = file->size + 1;
+    if (!(data = malloc(sizeInBytes))) {
+        showError("Couldn't allocate %zu bytes of memory. "
+                  TEXT_CLOSE_PROGS_AND_RUN_AGAIN,
+                  sizeInBytes);
+        goto fail_alloc_data;
+    }
+
+    if (!ReadFile(handle, data, file->size + 1, &bytesRead, NULL)) {
+        showError("Couldn't read the contents of the file %s.",
+                  file->nameUppercase);
+        goto fail_read;
+    }
+
+    if (bytesRead != file->size) {
+        showError("The file %s has an unexpected file size of "
+                  "%lu bytes, but it should be exactly %lu bytes. This could "
+                  "be caused by a failed prior patching attempt, the "
+                  "application of another patch or an supported game version.",
+                  file->nameUppercase,
+                  (unsigned long) bytesRead,
+                  (unsigned long) file->size);
+        goto fail_invalid_size;
+    }
+
+
+    getMd5Checksum(data, file->size, checksum);
+
+    if (strcmp(checksum, file->md5Unpatched)) {
+        if (strcmp(checksum, file->md5Patched)) {
+#ifdef VALIDATE_CHECKSUMS
+            showError("The MD5 checksum of file %s is\n\n"
+                      "%s\n\nbut it should be\n\n%s\n\nThis could be caused "
+                      "by a failed prior patching attempt, the application "
+                      "of another patch or an unsupported game version.",
+                      file->nameUppercase,
+                      checksum,
+                      file->md5Unpatched);
+            goto fail_invalid_checksum;
+#endif
+        }
+        else {
+            /* Not necessarily an error yet, remember the state. */
+            alreadyPatched = 1;
+        }
+    }
+
+    if (SetFilePointer(handle, 0, NULL,
+                       FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
+        showError("Patching failed. Couldn't prepare the file %s for "
+                  "writing after having read and verified its contents. "
+                  TEXT_RUN_AGAIN, file->nameUppercase);
+        goto fail_rewind;
+    }
+
+    file->data = data;
+    file->nameInFilesystemCase = nameInFilesystemCase;
+    file->handle = handle;
+    file->handleOpened = TRUE;
+    file->alreadyPatched = alreadyPatched;
+    file->modified = FALSE;
+
+    allFilesPatched = file->alreadyPatched ? allFilesPatched : FALSE;
+
+    return 1;
+
+fail_rewind:
+fail_invalid_checksum:
+fail_invalid_size:
+fail_read:
+    if (data) {
+        free(data);
+    }
+fail_open:
+    CloseHandle(handle);
+fail_alloc_data:
+    if (nameInFilesystemCase) {
+        free(nameInFilesystemCase);
+    }
+fail_alloc_fs_case:
+fail_invalid_fs_case:
+    if (findHandleOpened) {
+        FindClose(findHandle);
+    }
+fail_find_file:
+    return 0;
+}
+
+static int writeFile(struct PatchedFile *file)
+{
+    char checksum[33];
+
+    assert(file);
+
+    getMd5Checksum(file->data, file->size, checksum);
+
+    if (strcmp(checksum, file->md5Patched)) {
+#ifdef VALIDATE_CHECKSUMS
+        showError("The patched MD5 checksum of file %s is\n\n%s\n\nbut should "
+                  "be\n\n%s\n\nThis is very likely an internal patcher "
+                  "error. The file itself is not changed but other files "
+                  "probably already are. Restore your game files from the "
+                  "backup file %s and please report this error.",
+                  file->nameUppercase, checksum, file->md5Patched,
+                  bkpFilenameUppercase);
+        goto fail_checksum;
+#endif
+    }
+
+    if (!WriteFile(file->handle, file->data, file->size, NULL, 0)) {
+        showError("Couldn't write the patched data back into file %s and "
+                  "it's now probably corrupted. Replace this file with "
+                  "the original in the backup file %s and try running "
+                  "the patcher again.",
+                  file->nameUppercase, bkpFilenameUppercase);
+        goto fail_write;
+    }
+
+    return 1;
+
+fail_write:
+fail_checksum:
+    return 0;
+}
+
+static int createBackup(void)
+{
+    HANDLE handle;
+    BOOL handleOpened;
+    void *data;
+    char checksum[33];
+    DWORD sizeInBytesLoWord;
+    DWORD sizeInBytesHiWord;
+    size_t sizeInBytes;
+    DWORD bytesRead;
+    struct PatchedFile *file;
+    mz_zip_archive arch;
+    BOOL writingBackup;
+    BOOL readingBackup;
+    void *fileData;
+    size_t fileSizeInBytes;
+
+    handleOpened = FALSE;
+    data = NULL;
+    fileData = NULL;
+    writingBackup = FALSE;
+    readingBackup = FALSE;
+
+    handle = CreateFile(bkpFilename,
+                        GENERIC_READ | GENERIC_WRITE, 0, NULL,
+                        OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (handle == INVALID_HANDLE_VALUE) {
+        showError("Couldn't open or create the backup file "
+                  "%s. If it exists, make sure it's not being used by "
+                  "another application before running the patcher again.",
+                  bkpFilenameUppercase);
+        goto fail_open;
+    }
+
+    handleOpened = FALSE;
+
+    if (GetLastError() == ERROR_ALREADY_EXISTS) {
+        sizeInBytesLoWord = GetFileSize(handle, &sizeInBytesHiWord);
+
+        if (sizeInBytesLoWord == INVALID_FILE_SIZE) {
+            showError("The backup file %s already exists but "
+                      "couldn't determine it's size. "
+                      TEXT_RUN_AGAIN, bkpFilenameUppercase);
+            goto fail_size;
+        }
+        else if (sizeInBytesHiWord || sizeInBytesLoWord > SIZE_MAX) {
+            showError("The backup file %s already exists but it's too large "
+                      "so its contents cannot be verified. It's unlikely "
+                      "that this file was created by the patcher. "
+                      TEXT_DELETE_AND_RUN_AGAIN, bkpFilenameUppercase);
+        }
+
+        sizeInBytes = sizeInBytesLoWord;
+
+        if (!(data = malloc(sizeInBytes))) {
+            showError("Couldn't allocate %lu bytes of memory. "
+                      TEXT_CLOSE_PROGS_AND_RUN_AGAIN,
+                      (unsigned long) sizeInBytes);
+            goto fail_alloc;
+        }
+
+        if (!ReadFile(handle, data, sizeInBytes, &bytesRead,
+                      NULL)) {
+            showError("The backup file %s already exists but "
+                      "couldn't read its contents. "
+                      TEXT_CLOSE_PROGS_AND_RUN_AGAIN,
+                      bkpFilenameUppercase);
+            goto fail_read_existing;
+        }
+
+
+        memset(&arch, 0, sizeof(mz_zip_archive));
+
+        if (mz_zip_reader_init_mem(&arch, data, sizeInBytes, 0) == MZ_FALSE) {
+            showError("The backup file %s already exists but "
+                      "couldn't read its contents. "
+                      TEXT_CLOSE_PROGS_AND_RUN_AGAIN,
+                      bkpFilenameUppercase);
+            goto fail_zip_reader;
+        }
+
+        readingBackup = TRUE;
+
+        for (file = patchedFiles; file->name; file++) {
+            fileData = mz_zip_reader_extract_file_to_heap(&arch, file->name,
+                                                          &fileSizeInBytes, 0);
+            if (!fileData) {
+                if(arch.m_last_error == MZ_ZIP_ALLOC_FAILED) {
+                    showError("Couldn't allocate memory. "
+                              TEXT_CLOSE_PROGS_AND_RUN_AGAIN);
+                }
+                else if (arch.m_last_error == MZ_ZIP_FILE_NOT_FOUND) {
+                    showError("File %s was not found in the already "
+                              "existing backup file %s. The backup file "
+                              "might be from an earlier version of the patch "
+                              "or maybe it was copied from some place else "
+                              "or it was created by another program. "
+                              TEXT_DELETE_AND_RUN_AGAIN,
+                              file->nameUppercase,
+                              bkpFilenameUppercase);
+                }
+                else {
+                    showError("An unspecified error occured while validating "
+                              "file %s in the already existing backup file "
+                              "%s."
+                              TEXT_RUN_AGAIN
+                              "If the problem persists, restore the original "
+                              "game files and delete the backup file. "
+                              "A new backup file will be created by the "
+                              "patcher before it modifies any files.",
+                              file->nameUppercase,
+                              bkpFilenameUppercase);
+                }
+                goto fail_zip_extract;
+
+            }
+
+            if (fileSizeInBytes != file->size) {
+                showError("File %s in the already "
+                          "existing backup file %s has an unexpected "
+                          "size of %zu bytes but it should be %zu bytes."
+                          "This could be caused "
+                          "by an internal patcher error or maybe the "
+                          "backup file was copied to the game's directory "
+                          "from some place else or it was created by "
+                          "another program. "
+                          TEXT_DELETE_AND_RUN_AGAIN,
+                          file->nameUppercase,
+                          bkpFilenameUppercase,
+                          fileSizeInBytes,
+                          file->size);
+                goto fail_size_check;
+
+            }
+
+            getMd5Checksum(fileData, fileSizeInBytes, checksum);
+
+            if (strcmp(checksum, file->md5Unpatched)) {
+                showError("The MD5 checksum of file %s in the already "
+                          "existing backup file %s is unexpectedly\n\n"
+                          "%s\n\nbut it should be\n\n%s\n\nThis could "
+                          "be caused by an internal patcher error or "
+                          "maybe the backup file was copied to the "
+                          "game's directory from some place else "
+                          "or it was created by another program. "
+                          TEXT_DELETE_AND_RUN_AGAIN,
+                          file->nameUppercase,
+                          bkpFilenameUppercase,
+                          checksum,
+                          file->md5Unpatched);
+                goto fail_checksum_check;
+            }
+
+            free(fileData);
+            fileData = NULL;
+        }
+
+        readingBackup = FALSE;
+
+        if (mz_zip_reader_end(&arch) == MZ_FALSE) {
+            goto fail_zip_end_read;
+        }
+
+        free(data);
+        data = NULL;
+    }
+    else {
+        for (file = patchedFiles; file->name; file++) {
+            if (file->alreadyPatched) {
+                showError("Couldn't write the file %s to the backup file %s "
+                          "because it's already patched. The backup file is "
+                          "now in an inconsistent state. In order to run the "
+                          "patcher successfully you need to somehow restore "
+                          "the original file %s and delete the corrupted "
+                          "backup file %s.",
+                          file->nameUppercase,
+                          bkpFilenameUppercase,
+                          file->nameUppercase,
+                          bkpFilenameUppercase);
+                goto fail_already_patched;
+            }
+        }
+
+        memset(&arch, 0, sizeof(mz_zip_archive));
+
+        if (mz_zip_writer_init_heap(&arch, 0, sizeInBytes) == MZ_FALSE) {
+            showError(TEXT_INCONSISTENT_BACKUP, bkpFilenameUppercase);
+            goto fail_zip_writer;
+        }
+
+        writingBackup = TRUE;
+
+        for (file = patchedFiles; file->name; file++) {
+            if (mz_zip_writer_add_mem(&arch, file->nameInFilesystemCase,
+                                      file->data, file->size,
+                                      MZ_DEFAULT_COMPRESSION)  == MZ_FALSE) {
+                showError(TEXT_INCONSISTENT_BACKUP, bkpFilenameUppercase);
+                goto fail_zip_add;
+            }
+        }
+
+        if (mz_zip_writer_finalize_heap_archive(&arch, &data,
+                                                &sizeInBytes) == MZ_FALSE) {
+            showError(TEXT_INCONSISTENT_BACKUP, bkpFilenameUppercase);
+            goto fail_zip_finalize;
+        }
+
+        if (mz_zip_writer_end(&arch) == MZ_FALSE) {
+            showError(TEXT_INCONSISTENT_BACKUP, bkpFilenameUppercase);
+            goto fail_zip_end_write;
+
+        }
+
+        writingBackup = FALSE;
+
+        if (!WriteFile(handle, data, sizeInBytes, NULL, 0)) {
+            showError(TEXT_INCONSISTENT_BACKUP, bkpFilenameUppercase);
+            goto fail_write;
+        }
+
+        free(data);
+        data = NULL;
+    }
+
+    bkpHandle = handle;
+
+    return 1;
+
+fail_write:
+fail_zip_end_write:
+fail_zip_finalize:
+fail_zip_add:
+    if (writingBackup) {
+        mz_zip_writer_end(&arch);
+    }
+fail_zip_writer:
+fail_already_patched:
+fail_zip_end_read:
+fail_checksum_check:
+fail_size_check:
+fail_zip_extract:
+    if (readingBackup) {
+        mz_zip_reader_end(&arch);
+    }
+fail_zip_reader:
+fail_read_existing:
+    if (data) {
+        free(data);
+    }
+fail_alloc:
+fail_size:
+    if (handleOpened) {
+        CloseHandle(handle);
+    }
+fail_open:
+
+    return 0;
+}
+
+int cmpChanges(const void *_chA, const void *_chB)
+{
+    const struct PatchedBytes *chA;
+    const struct PatchedBytes *chB;
+    int res;
+
+    chA = *((struct PatchedBytes **) _chA);
+    chB = *((struct PatchedBytes **) _chB);
+
+    if (!chA->fnamePrefix) {
+        res = 1;
+    }
+    else {
+        if (!chB->fnamePrefix) {
+            res = -1;
+        }
+        else {
+            res = _stricmp(chA->fnamePrefix, chB->fnamePrefix);
+            if (!res) {
+                if (chA->addr == chB->addr) {
+                    res = 0;
+                }
+                else {
+                    res = chA->addr < chB->addr ? -1 : 1;
+                }
+            }
+        }
+    }
+
+    return res;
+}
+
+static int patchData()
+{
+    struct PatchedFile *file;
+    const struct PatchedBytes **sortedChanges;
+    const struct Section *sec;
+    size_t numChanges;
+    const char *fnamePrefix;
+    const struct PatchedBytes **ch;
     DWORD prevChangeAddr;
     DWORD addrFirst;
     DWORD addrLast;
@@ -186,79 +807,92 @@ static int patchData(BYTE *data)
     DWORD firstByteIdx;
     DWORD nextByteIdx;
     size_t ii;
-    int res;
 
-    res = 1;
-    nextByteIdx = 0;
+    fnamePrefix = NULL;
     prevChangeAddr = 0;
 
-    assert(data);
-    assert(res);
-    assert(!nextByteIdx);
+    assert(!fnamePrefix);
     assert(!prevChangeAddr);
 
-    /* TODO: Add checks for undefined behavior. */
+    /* FIXME: Add checks for undefined behavior. */
 
-    while (1) {
+    /* Sort the changes on prefix and size. */
 
-        /* Find the next patched location. */
+    numChanges = 0;
+    while (changes[numChanges].fnamePrefix) {
+        numChanges++;
+    }
 
-        change = NULL;
+    /* Increment a final time to account for the end-of-array marker. */
 
-        for (ch = changes; ch->bytes; ch++) {
-            if (change && ch->addr == change->addr && ch != change) {
-                showError("Internal patcher error, multiple change sets with "
-                          "address 0x%08lX present in the list.",
-                          (unsigned long) change->addr);
-                res = 0;
-                break;
+    numChanges++;
+
+    sortedChanges = _alloca(numChanges * sizeof(struct PatchedBytes *));
+
+    for (ii = 0; ii < numChanges; ii++) {
+        sortedChanges[ii] = &changes[ii];
+    }
+
+    qsort(sortedChanges, numChanges, sizeof(struct PatchedBytes *), cmpChanges);
+
+    for (ch = sortedChanges; (*ch)->fnamePrefix; ch++) {
+        if (!fnamePrefix || _stricmp(fnamePrefix, (*ch)->fnamePrefix)) {
+            for (file = patchedFiles; file->name; file++) {
+                if (!_stricmp(file->namePrefix, (*ch)->fnamePrefix)) {
+                    break;
+                }
             }
 
-            if (ch->addr > prevChangeAddr
-                && (!change || ch->addr < change->addr)) {
-                change = ch;
+            if (!file->name) {
+                showError("Internal patcher error, failed to find the file to "
+                          "patch for the change set with prefix %s and "
+                          "address 0x%08lX. "
+                          TEXT_PLEASE_REPORT,
+                          (*ch)->fnamePrefix,
+                          (unsigned long) (*ch)->addr);
+                goto fail_unknown_file;
             }
+
+            fnamePrefix = (*ch)->fnamePrefix;
+            nextByteIdx = 0;
         }
 
-        if (!change) {
-            break;
-        }
-
-        prevChangeAddr = change->addr;
-
-        /* Find the section */
-
-        for (sec = sections; sec->name; sec++) {
-            addrFirst = imageBase + sec->virtualAddr;
+        for (sec = file->sections; sec->name; sec++) {
+            addrFirst = file->imageBase + sec->virtualAddr;
             addrLast = addrFirst + sec->size;
 
-            if (change->addr >= addrFirst && change->addr <= addrLast) {
+            if ((*ch)->addr >= addrFirst && (*ch)->addr <= addrLast) {
                 break;
             }
         }
 
         if (!sec->name) {
             showError("Internal patcher error, failed to find the correct "
-                      "section for the change at address 0x%08lX.",
-                      (unsigned long) change->addr);
-            res = 0;
-            break;
+                      "section of file %s for the change set with prefix %s "
+                      "and address 0x%08lX. "
+                      TEXT_PLEASE_REPORT,
+                      file->name,
+                      (*ch)->fnamePrefix,
+                      (unsigned long) (*ch)->addr);
+            goto fail_unknown_sec;
         }
 
         firstByteIdx = sec->rawDataPtr
-                       + (change->addr - sec->virtualAddr - imageBase);
+                       + ((*ch)->addr - sec->virtualAddr - file->imageBase);
 
         if (firstByteIdx < nextByteIdx) {
-            showError("Internal patcher error, the change sets must not "
-                      "not overlap.");
-            res = 0;
-            break;
+            showError("Internal patcher error, at least two change sets for "
+                      "the file %s (change prefix %s) overlap. "
+                      TEXT_PLEASE_REPORT,
+                      file->nameUppercase,
+                      fnamePrefix);
+            goto fail_overlapping_secs;
         }
 
         /* Apply the changes to the data. */
 
         nextByteIdx = firstByteIdx;
-        bytes = change->bytes;
+        bytes = (*ch)->bytes;
         bytesLen = strlen(bytes);
 
         ii = 0;
@@ -268,21 +902,27 @@ static int patchData(BYTE *data)
                     || (hexValA = hexDigitToNum(bytes[ii])) == -1
                     || (hexValB = hexDigitToNum(bytes[ii + 1])) == -1) {
                     showError("Internal patcher error, invalid byte "
-                              "representation for the change at address "
-                              "0x%08lX.", (unsigned long) change->addr);
-                    res = 0;
-                    break;
+                              "representation for the change set with "
+                              "prefix %s and address 0x%08lX. "
+                              TEXT_PLEASE_REPORT,
+                              (*ch)->fnamePrefix,
+                              (unsigned long) (*ch)->addr);
+                    goto fail_invalid_hex_str;
                 }
 
-                if (nextByteIdx == fileSizeInBytes) {
-                    showError("Internal patcher error, change at address "
-                              "0x%08lX extends past the end of the file.",
-                              (unsigned long) change->addr);
-                    res = 0;
-                    break;
+                if (nextByteIdx == file->size) {
+                    showError("Internal patcher error, change set with prefix "
+                              "%s and address extends past the end of the "
+                              "file %s. ",
+                              TEXT_PLEASE_REPORT,
+                              (*ch)->fnamePrefix,
+                              (unsigned long) (*ch)->addr,
+                              file->nameUppercase);
+                    goto fail_invalid_byte_addr;
                 }
 
-                data[nextByteIdx++] = hexValA * 16 + hexValB;
+                ((unsigned char *) file->data)[nextByteIdx++] = hexValA * 16
+                                                                + hexValB;
                 ii += 2;
             }
             else {
@@ -290,270 +930,68 @@ static int patchData(BYTE *data)
             }
         }
 
-        if (!res) {
-            break;
+        if (nextByteIdx != firstByteIdx) {
+            file->modified = TRUE;
         }
     }
 
-    return res;
+    return 1;
+
+fail_invalid_byte_addr:
+fail_invalid_hex_str:
+fail_overlapping_secs:
+fail_unknown_sec:
+fail_unknown_file:
+    return 0;
 }
 
 int WINAPI WinMain(HINSTANCE inst, HINSTANCE prevInst, LPSTR cmdLine,
                    int nShowCmd)
 {
+    struct PatchedFile *file;
 
-    HANDLE fileHandle;
-    BYTE *fileData;
-    HANDLE backupHandle;
-    BYTE *backupData;
-    DWORD bytesRead;
-    WIN32_FIND_DATA findData;
-    HANDLE findHandle;
-    BOOL findHandleClosed;
-    char *backupFilenameInCorrectCase;
-    char checksum[33];
-    int res;
-
-    fileData = NULL;
-    backupData = NULL;
-    res = 1;
-    findHandleClosed = FALSE;
-
-    assert(filename);
-    assert(strlen(filename));
-    assert(backupFilename);
-    assert(strlen(backupFilename));
-    assert(imageBase <= 0xFFFFFFFF);
-    assert(strcmp(filename, backupFilename));
-    assert(fileSizeInBytes);
-    assert(BUFLEN(checksum) >= 32 + 1);
-    assert(!findHandleClosed);
-    assert(res);
-
-    /* Read file to be patched and verify the checksum. */
-
-    fileHandle = CreateFile(filename, GENERIC_READ | GENERIC_WRITE, 0, NULL,
-                            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (fileHandle == INVALID_HANDLE_VALUE) {
-        showError("Patching failed. Couldn't open the file %s. Make sure the "
-                  "patcher is located in the game's main directory containing "
-                  "HITMAN.EXE.", filename);
-        goto fail_open;
-    }
-
-    if (!(fileData = malloc((fileSizeInBytes + 1) * sizeof(BYTE)))) {
-        showError("Patching failed. Couldn't allocate %lu bytes of memory.",
-                  (unsigned long) (fileSizeInBytes + 1));
-        goto fail_alloc_file_data;
-    }
-
-    if (!ReadFile(fileHandle, fileData, fileSizeInBytes + 1, &bytesRead,
-                  NULL)) {
-        showError("Patching failed. Couldn't read the contents of the file %s.",
-                  filename);
-        goto fail_read_file;
-    }
-
-    if (bytesRead != fileSizeInBytes) {
-        showError("Patching failed. The file %s has an unexpected file size of "
-                  "%lu bytes, but it should be exactly %lu bytes. Maybe "
-                  "another patch was applied or this is an unsupported game "
-                  "version.", filename, (unsigned long) bytesRead,
-                  (unsigned long) fileSizeInBytes);
-        goto fail_invalid_file_size;
-    }
-
-    getMd5Checksum(fileData, fileSizeInBytes, checksum);
-
-    if (strcmp(checksum, oldMd5)) {
-        if (!strcmp(checksum, newMd5)) {
-            showInfo("Patching failed. The file %s has an MD5 checksum of\n\n"
-                     "%s\n\nwhich indicates that it was already patched.",
-                     filename, checksum);
-            goto fail_already_patched;
-        }
-        else {
-            showError("Patching failed. The file %s has an MD5 checksum of\n\n"
-                      "%s\n\nbut it should be\n\n%s\n\nMaybe another patch was "
-                      "applied or this is an unsupported game version.",
-                      filename, checksum, oldMd5);
-            goto fail_invalid_checksum;
+    for (file = patchedFiles; file->name; file++) {
+        if (!readFile(file)) {
+            goto fail_read_file;
         }
     }
 
-    /* Determine the filename according to the file system so we create a backup
-    ** in exactly the same letter case.
-    */
-
-    findHandle = FindFirstFile(filename, &findData);
-    if (findHandle == INVALID_HANDLE_VALUE) {
-        showError("Patching failed. Failed to query the correct file system "
-                  "name of file %s. Try running the patcher again.",
-                  filename);
-        goto fail_find_file;
+    if (allFilesPatched) {
+        showInfo("Nothing will be done, the game files are already patched.");
+        goto all_patched;
     }
 
-    if (_stricmp(filename, findData.cFileName)) {
-        showError("Patching failed. Failed to query the correct file system "
-                  "name of file %s. The query returned the result %s. This is "
-                  "likely a bug in the patcher, please report it.",
-                  filename, findData.cFileName);
-        goto fail_filename_in_correct_case;
+    if (!createBackup()) {
+        goto fail_backup;
     }
 
-    backupFilenameInCorrectCase = _alloca((strlen(backupFilename) + 1)
-                                          * sizeof(char));
-
-    strcpy(backupFilenameInCorrectCase, findData.cFileName);
-    strcat(backupFilenameInCorrectCase, ".bak");
-
-    if (_stricmp(backupFilename, backupFilenameInCorrectCase)) {
-        showError("Patching failed. Failed to derive the file system name for "
-                  "the backup file %s. The process generated the file name %s. "
-                  "This is likely a bug in the patcher, please report it.",
-                  backupFilename, backupFilenameInCorrectCase);
-        goto fail_backup_filename_in_correct_case;
-    }
-
-    FindClose(findHandle);
-    findHandleClosed = TRUE;
-
-    /* Read an existing backup file and verify the contents or create a new
-    ** backup file.
-    */
-
-    backupHandle = CreateFile(backupFilenameInCorrectCase,
-                              GENERIC_READ | GENERIC_WRITE, 0, NULL,
-                              OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-
-    if (backupHandle == INVALID_HANDLE_VALUE) {
-        showError("Patching failed. Couldn't open or create the backup file "
-                  "%s.", backupFilename);
-        goto fail_backup_open;
-    }
-
-    if (GetLastError() == ERROR_ALREADY_EXISTS) {
-        if (!(backupData = malloc((fileSizeInBytes + 1) * sizeof(BYTE)))) {
-            showError("Patching failed. Couldn't allocate %lu bytes of memory.",
-                      (unsigned long) (fileSizeInBytes + 1));
-            goto fail_alloc_backup_data;
-        }
-
-        if (!ReadFile(backupHandle, backupData, fileSizeInBytes + 1, &bytesRead,
-                      NULL)) {
-            showError("Patching failed. The backup file %s already exists but "
-                      "couldn't read its contents.", backupFilename);
-            goto fail_backup_read;
-        }
-
-        if (bytesRead != fileSizeInBytes) {
-            showError("Patching failed. The backup file %s has an unexpected "
-                      "file size of %lu bytes, but it should be exactly %lu "
-                      "bytes. Maybe it's a backup of a previously applied "
-                      "patch.", backupFilename, (unsigned long) bytesRead,
-                      (unsigned long) fileSizeInBytes);
-            goto fail_invalid_backup_size;
-        }
-
-        if (memcmp(fileData, backupData, fileSizeInBytes * sizeof(BYTE))) {
-            showError("Patching failed. The backup file %s contains data "
-                      "different from the file %s.", backupFilename, filename);
-            goto fail_invalid_backup_data;
-        }
-
-        free(backupData);
-        backupData = NULL;
-
-        if (SetFilePointer(backupHandle, 0, NULL,
-                           FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
-            showError("Patching failed. Couldn't prepare the backup file %s "
-                      "for writing after having read its contents.",
-                      backupFilename);
-            goto fail_backup_rewind;
-        }
-    }
-
-    if (!WriteFile(backupHandle, fileData, fileSizeInBytes, NULL, 0)) {
-        showError("Patching failed. The backup file %s was created but "
-                  "couldn't write data to it. Delete the file manually before "
-                  "running the patcher again.", backupFilename);
-        goto fail_backup_write;
-    }
-
-    /* Patch the data and write the patched file. */
-
-    if (!patchData(fileData)) {
+    if (!patchData()) {
         goto fail_patch;
     }
 
-    getMd5Checksum(fileData, fileSizeInBytes, checksum);
-    
-    if (strcmp(checksum, newMd5)) {
-        showError("Internal patcher error, unexpected MD5 checksum of the "
-                  "patched data for the file %s. A backup file %s was created "
-                  "which you need to delete manually if not needed.",
-                  filename, backupFilename);
-        goto fail_invalid_new_checksum;
-
+    for (file = patchedFiles; file->name; file++) {
+        if (file->modified && !writeFile(file)) {
+            goto fail_write_file;
+        }
     }
 
-    if (SetFilePointer(fileHandle, 0, NULL,
-                       FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
-        showError("Patching failed. Couldn't prepare the file %s for "
-                  "writing after having read its contents. A backup file %s "
-                  "was created which you need to delete manually if not "
-                  "needed.", filename, backupFilename);
-        goto fail_backup_rewind;
-    }
-#if 1
-    if (!WriteFile(fileHandle, fileData, fileSizeInBytes, NULL, 0)) {
-        showError("Patching failed. Couldn't write the patched data back into "
-                  "file %s. The file is probably corrupted. Replace this file "
-                  "with the backup file %s before playing the game or "
-                  "rerunning the patcher.",
-                  filename, backupFilename);
-        goto fail_backup_write;
-    }
-#endif
+    closeFiles();
+    CloseHandle(bkpHandle);
+    showInfo("Patching was successful. A number of games files were modified "
+             "and a backup file %s containing the originals was created in "
+             "the same directory. If you wish to uninstall the patch just "
+             "the contents of the backup in the game directory. Enjoy "
+             "Hitman: Codename 47!", bkpFilenameUppercase);
 
-    free(fileData);
-    CloseHandle(backupHandle);
-    CloseHandle(fileHandle);
-
-    showInfo("Patching was successful. The file %s was modified and a backup "
-             "file %s was created in the same directory. If you wish to "
-             "uninstall the patch just overwrite the file with the backup. "
-             "Enjoy Hitman at sane speed!", filename, backupFilename);
-
+all_patched:
+    closeFiles();
     return 0;
 
-fail_backup_write:
-fail_backup_rewind:
-fail_invalid_new_checksum:
+fail_write_file:
 fail_patch:
-fail_invalid_backup_data:
-fail_invalid_backup_size:
-fail_backup_read:
-    if (backupData != NULL) {
-        free(backupData);
-    }
-fail_alloc_backup_data:
-    CloseHandle(backupHandle);
-fail_backup_open:
-fail_filename_in_correct_case:
-fail_backup_filename_in_correct_case:
-    if (!findHandleClosed) {
-        FindClose(findHandle);
-    }
-fail_find_file:
-fail_invalid_checksum:
-fail_already_patched:
-fail_invalid_file_size:
+fail_backup:
 fail_read_file:
-    free(fileData);
-fail_alloc_file_data:
-    CloseHandle(fileHandle);
-fail_open:
-    return res;
+    closeFiles();
+    return 1;
 }
 
