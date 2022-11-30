@@ -31,5 +31,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-.include "dist_gog/system_0FFB1230.s"
+    mov esi, eax
+    mov edi, edx
+    jmp offset 0x0F
 

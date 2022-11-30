@@ -33,10 +33,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .set LoadLibrary,                           0x0FFD3078
 .set GetProcAddress,                        0x0FFD305C
-.set StringCompareA,                        0x0FFD3144
-.set str_kernel32_addr,                     0x0FFDAEA8
-.set str_query_performance_frequency_addr,  0x0FFDAEB8
-.set str_query_performance_counter_addr,    0x0FFDAED4
-.set handle_query_performance_counter_addr, 0x0FFDAEEC
-.set str_fps_addr,                          0x0FFDAEF0
-.set int_fps_addr,                          0x0FFDAEF4
+
+.set handle_query_performance_counter_addr, 0x0FFDAEA8
+.set int_fps_addr,                          0x0FFDAEAC
+
+.set getPerformanceCounterFrequency,        0x0FFD28E4
+.set getPerformanceCounterIfInitialized,    0x0FFD2974
+.set scaleTimeDeltaToTargetFps,             0x0FFD29A0
+.set tryParseFpsValueFromConfig,            0x0FFD29CC
+
+.set updateGravityProcessingDecayValues,    0x0FEAFA54
+.set updateGravityCutoffTimer,              0x0FEAFB04
+
+.ifdef PATCH_FOR_GOG
+
+.set compareStringsCaseInsensitive,         0x0FFBD990
+.set stringToInt,                           0x0FFB40F9
+
+.else
+.ifdef PATCH_FOR_OTHER
+
+.set compareStringsCaseInsensitive,         0x0FFBD940
+.set stringToInt,                           0x0FFBD9C9
+
+.else
+.error "You need to specify which game distribution to build the patcher for."
+.endif
+.endif

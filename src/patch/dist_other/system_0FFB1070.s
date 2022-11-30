@@ -31,6 +31,5 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-.set scale_delta_time_to_target_fps, 0x0FFB12D4
-.include "dist_gog/system_0FFB1080.s"
+.include "dist_gog/system_0FFB1080.s" 
 

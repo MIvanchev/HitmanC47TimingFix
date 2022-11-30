@@ -35,10 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     lea ebx, [ebp-0xC]
     push ebx
-    call [handle_query_performance_counter_addr]
+    call getPerformanceCounterIfInitialized - base
+.rep 6
     nop
-    nop
-    nop
-    nop
-    nop
+.endr
 

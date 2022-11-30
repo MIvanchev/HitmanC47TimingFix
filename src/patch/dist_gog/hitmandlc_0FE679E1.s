@@ -31,5 +31,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-    call 0x0FFBD9BF - base
+.include "common/consts.s"
+
+    mov dword ptr [esi+0xa0], float_20
 

@@ -31,12 +31,5 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-    fldz
-    fistp qword ptr [ebx]
-    test eax, eax
-    jz query_performance_counter_not_loaded
-    push ebx
-    call eax
-    query_performance_counter_not_loaded:
-    ret
+.include "dist_gog/system_0FFAF1F5.s" 
 

@@ -92,14 +92,13 @@ struct PatchedFile patchedFiles[] = {
         278528,
         0x0FFA0000,
         "90b1ac786841bdd5f45077b97fdb83ee",
-        "904228e19a6fc01d21167d3202bd89b2",
+        "a2793eb85fd4bbdfb2941586ba640f54",
         {   { ".text", 0x1000, 0x32000, 0x1000 },
             { ".rdata", 0x33000, 0x5000, 0x33000 },
             { ".data", 0x38000, 0x8000, 0x38000 },
             { NULL, 0 }
         }
     },
-/*
     {
         "HitmanDlc.dlc",
         "HITMANDLC.DLC",
@@ -107,28 +106,13 @@ struct PatchedFile patchedFiles[] = {
         2555904,
         0x0FCC0000,
         "bf3e32ba24d2816adb8ba708774f1e1a",
-        "bf3e32ba24d2816adb8ba708774f1e1a",
+        "0e930a1a24ec7cbe3452960562aa40b9",
         {   { ".text", 0x1000, 0x1ef000, 0x1000 },
             { ".rdata", 0x1f0000, 0x2f000, 0x1f0000 },
             { ".data", 0x21f000, 0x25000, 0x21f000 },
             { NULL, 0 }
         },
     },
-    {
-        "EngineData.dll",
-        "ENGINEDATA.DLL",
-        "enginedata",
-        249856,
-        0x0FF60000,
-        "878acb8049a6c513f6bdce4bb4f6c92c",
-        "878acb8049a6c513f6bdce4bb4f6c92c",
-        {   { ".text", 0x1000, 0x2f000, 0x1000 },
-            { ".rdata", 0x30000, 0x3000, 0x30000 },
-            { ".data", 0x33000, 0x6000, 0x33000 },
-            { NULL, 0 }
-        }
-    },
-*/
 #elif defined PATCH_FOR_OTHER
     {
         "system.dll",
@@ -137,14 +121,13 @@ struct PatchedFile patchedFiles[] = {
         278528,
         0x0FFA0000,
         "6d3bcfab731dbbbf555d054ccbad6eda",
-        "2d371ab992d583ed4221b915d82cba25",
+        "4e4e8223ae405a620c66e3349c76489c",
         {   { ".text", 0x1000, 0x32000, 0x1000 },
             { ".rdata", 0x33000, 0x5000, 0x33000 },
             { ".data", 0x38000, 0x8000, 0x38000 },
             { NULL, 0 }
         }
     },
-/*
     {
         "HitmanDlc.dlc",
         "HITMANDLC.DLC",
@@ -152,14 +135,13 @@ struct PatchedFile patchedFiles[] = {
         2555904,
         0x0FCC0000,
         "9b32d467c3d62e9ec485de7b7586fed3",
-        "9b32d467c3d62e9ec485de7b7586fed3",
+        "a7e4ffefbb3e6c4c0461a5f05ac627e5",
         {   { ".text", 0x1000, 0x1ef000, 0x1000 },
             { ".rdata", 0x1f0000, 0x2f000, 0x1f0000 },
             { ".data", 0x21f000, 0x25000, 0x21f000 },
             { NULL, 0 }
         },
     },
-*/
 #else
 #error You need to specify which game distribution to build the patcher for.
 #endif

@@ -31,5 +31,13 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-.include "dist_gog/system_0FFB174C.s" 
+.set float_1,   0x3f800000
+.set float_20,  0x41a00000
+.set float_25,  0x41c80000
+.set float_60,  0x42700000
+
+.set double_1_004_hi,   0x3ff01062
+.set double_1_004_lo,   0x4dd2f1aa
+.set double_0_9_hi,     0x3feccccc
+.set double_0_9_lo,     0xcccccccd
 
