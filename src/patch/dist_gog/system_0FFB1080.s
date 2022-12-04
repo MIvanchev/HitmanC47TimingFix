@@ -31,11 +31,9 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-.ifndef scale_delta_time_to_target_fps
-.set scale_delta_time_to_target_fps, 0x0FFB12E4
-.endif
+.include "common/locations.s"
 
-    call scale_delta_time_to_target_fps - base
+    call scaleTimeDeltaToTargetFps - base
     nop
     nop
     nop

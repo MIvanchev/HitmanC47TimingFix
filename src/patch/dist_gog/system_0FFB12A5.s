@@ -31,5 +31,14 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-    call 0x0FFBD96F - base
+.include "common/locations.s"
+
+    push eax
+    mov dword ptr [esp+0x14], edx
+    call getPerformanceCounterFrequency - base
+    pop eax
+    test al, al    
+    pop edi
+    pop esi
+    nop
 

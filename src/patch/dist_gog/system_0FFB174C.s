@@ -31,15 +31,12 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-.ifndef invoke_query_performance_counter
-.set invoke_query_performance_counter, 0x0FFB1724
-.endif
-
 .include "common/locations.s"
 
-    mov eax, [handle_query_performance_counter_addr]
     lea ebx, [ebp-0x14]
-    call invoke_query_performance_counter - base
+    push ebx
+    call getPerformanceCounterIfInitialized - base
+.rep 6
     nop
-    nop
+.endr
 
