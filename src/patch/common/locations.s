@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 .ifdef PATCH_FOR_OTHER
 
 .set compareStringsCaseInsensitive,         0x0FFBD940
-.set stringToInt,                           0x0FFBD9C9
+.set stringToInt,                           0x0FFB40C9
 
 .else
 .error "You need to specify which game distribution to build the patcher for."

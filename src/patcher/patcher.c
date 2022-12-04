@@ -121,7 +121,7 @@ struct PatchedFile patchedFiles[] = {
         278528,
         0x0FFA0000,
         "6d3bcfab731dbbbf555d054ccbad6eda",
-        "4e4e8223ae405a620c66e3349c76489c",
+        "91c94a3f6bfd3bf2b506b37b17a189d0",
         {   { ".text", 0x1000, 0x32000, 0x1000 },
             { ".rdata", 0x33000, 0x5000, 0x33000 },
             { ".data", 0x38000, 0x8000, 0x38000 },
