@@ -8,7 +8,8 @@ platform: x86
 configuration: Release
 
 install:
-    - sudo DEBIAN_FRONTEND=noninteractive apt-get install -y gcc-mingw-w64-i686
+    - sudo apt update
+    - sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mingw-w64
 
 build:
     verbosity: minimal
@@ -17,8 +18,8 @@ build_script:
     - cd $APPVEYOR_BUILD_FOLDER
     - chmod +x compile-patch.sh
     - ./compile-patch.sh > patches.h
-    - i686-w64-mingw32-gcc-win32 -mtune=generic -mwindows -O2 -Wall -s -I. -DPATCH_FOR_GOG -o patcher-gog.exe src/patcher/*.c
-    - i686-w64-mingw32-gcc-win32 -mtune=generic -mwindows -O2 -Wall -s -I. -DPATCH_FOR_OTHER -o patcher-other.exe src/patcher/*.c
+    - i686-w64-mingw32-gcc-win32 -mtune=generic -mwindows -s -Wall -I. -DPATCH_FOR_GOG -o patcher-gog.exe src/patcher/*.c
+    - i686-w64-mingw32-gcc-win32 -mtune=generic -mwindows -s -Wall -I. -DPATCH_FOR_OTHER -o patcher-other.exe src/patcher/*.c
 
 artifacts:
   - path: patcher-gog.exe
