@@ -4,9 +4,7 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/s96nc560pf8pjdd2?svg=true)](https://ci.appveyor.com/project/MIvanchev/hitmanc47timingfix)
 
 This project provides an **unofficial** binary patch for the 2000 PC game Hitman:
-Codename 47 which fixes the problem that the game runs too fast on modern
-hardware. The mechanics of the patch are explained for fellow hackers and
-technically-inclined persons.
+Codename 47 which fixes numerous issues.
 
 Use at your own risk and discretion. I assume no responsibility for any damage
 resulting from using this project.
@@ -15,11 +13,17 @@ Please report any bugs and issues with the patch so I can make it better. It
 is considered work in progress until I get some feedback on how it behaves in
 the wild.
 
-**NOTE**: I am currently working towards fixing more issues with this game:
+## What's already fixed?
 
-* Adding widescreen support for all renderers with Hor+ FOV
-* Adding a 60 game updates per second limit without limiting the number
-of frames rendered
+* Game running too fast on modern hardware
+* Floating guns at high FPS
+
+## What's still being fixed?
+
+* Hor+ widescreen support
+* Readable in-game GUI across all resolutions
+* Camera sway at high FPS
+* Excessive rag doll physics at high FPS
 
 ## Supported versions of the game
 
@@ -39,14 +43,13 @@ how the patching went.
 
 | Game distribution | Patcher |
 | ----------------- | ------- |
-| GoG, version b192 | [patcher-gog](https://ci.appveyor.com/api/buildjobs/noc5rq0ebk4d2evc/artifacts/patcher-gog.exe) |
-| Steam & CD, version b192 | [patcher-other](https://ci.appveyor.com/api/buildjobs/noc5rq0ebk4d2evc/artifacts/patcher-other.exe) |
+| GoG, version b192 | [patcher-gog](https://ci.appveyor.com/api/buildjobs/ihhqrtd2kf9lyoc0/artifacts/patcher-gog.exe) |
+| Steam & CD, version b192 | [patcher-other](https://ci.appveyor.com/api/buildjobs/ihhqrtd2kf9lyoc0/artifacts/patcher-other.exe) |
 
 ## How to uninstall?
 
-The patcher creates a backup `.BAK` file for every files it modifies. To
-uninstall, just overwrite each of the files with their corresponding backup
-file.
+The patcher creates a ZIP file called `patch-backup.zip` containing the original
+game files. To uninstall, just extract the archive in the game's main directory.
 
 ## How to use?
 
@@ -57,12 +60,12 @@ find a good value. For instance my Hitman runs somewhat too fast on 60 FPS
 and setting `Fps 50` makes it nicely playable. Setting `Fps 0` or a negative
 value has no effect, i.e. the game's speed will not be modified.
 
-## Are there any limitations?
-
-The patch uses time stretching to slow the game down. Unfortunately
-Hitman: Codename 47 has a number of time related bugs which might be triggered
-if the time is stretched too much, for example explosive rag doll effects
-and floating weapons. I'm working on fixing those as well.
+The patch uses time stretching to slow the game down. This means that when you
+set `Fps <n>`, 1 game second will equal 1+ actual seconds and the individual
+frame times will be low. Unfortunately, Hitman: Codename 47 suffers from
+numerous problems at low frame times which might be triggered if the time
+is stretched too much, for example Matrix-like rag doll effects or excessive
+camera sway. I'm working on fixing those as well.
 
 ## How to build?
 
@@ -74,38 +77,6 @@ distribution you want by
 Look at the
 [AppVeyor file](https://raw.githubusercontent.com/MIvanchev/HitmanC47TimingFix/main/appveyor.yml)
 for more info.
-
-## Cause
-
-The game uses the CPU instruction RDTSC to keep track of how much time passes
-between the frames to update the state: camera, physics, sounds etc. RDTSC
-returns a value which is incremented every CPU cycle and is now considered
-[a very poor form of timing](https://learn.microsoft.com/en-us/windows/win32/dxtecharts/game-timing-and-multicore-processors)
-for numerous reasons, one being that the frequency of modern CPUs is not
-constant. The recommended way of obtaining timestamps on Windows is through the
-API functions [QueryPerformanceFrequency](https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancefrequency)
-and [QueryPerformanceCounter](https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancecounter).
-
-Hitman: Codename 47 is also not FPS limited. This means that the more times per
-second the game updates its state and renders the faster it appears to run.
-Back in 2000 the developers weren't considering that 20 years later the game
-will run at hundeds of frames. There are numerous strategies to address the
-problem, for example playing on huge resolutions and enabling all graphical
-features to slow the game down or throttling the CPU/GPU.
-
-Another way which doesn't limit the FPS but solves the speed issue
-is to make the game think less time is passing between the frames than actually
-is. Suppose the game is designed to run at 60 FPS but is running at 120 and
-feels twice as fast. The frame time will be 1/120 seconds or 8ms. If we reduce
-the frame time twice to 1/240 seconds or 4ms and use this for the state updates
-the game will be slowed down to its originally intended speed.
-
-## Solution
-
-The patch changes the game's code to use QueryPerformanceFrequency and 
-QueryPerformanceCounter instead of RDTSC for obtaining timestamps and scales
-the frame time proportionally as described above if the game is running too
-fast at the current FPS.
 
 ## License
 
