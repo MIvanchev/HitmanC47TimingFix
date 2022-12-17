@@ -4,7 +4,7 @@ echo "#ifndef __PATCHES_H__"
 echo "#define __PATCHES_H__"
 echo
 echo "struct PatchedBytes {"
-echo "    const char *fnamePrefix;"
+echo "    const wchar_t *fnamePrefix;"
 echo "    const DWORD addr;"
 echo "    const char *bytes;"
 echo "};"
@@ -38,7 +38,7 @@ for distrib_path in src/patch/dist_*; do
         -Isrc/patch -o "$obj_file" "$asm_file" || exit
       ld -melf_i386 --oformat=binary -e 0 -Ttext=0 -o "$hex_file" "$obj_file" || exit
 
-      echo "    { \"$module\", 0x$address,"
+      echo "    { L\"$module\", 0x$address,"
       hexdump -v -e '16/1 "%02x " "\n"' "$hex_file" | \
       sed -e "s/ *$//" \
           -e 's/^.*$/      "\0"/' \
