@@ -43,8 +43,8 @@ how the patching went.
 
 | Game distribution | Patcher |
 | ----------------- | ------- |
-| GoG, version b192 | [patcher-gog](https://ci.appveyor.com/api/buildjobs/ihhqrtd2kf9lyoc0/artifacts/patcher-gog.exe) |
-| Steam & CD, version b192 | [patcher-other](https://ci.appveyor.com/api/buildjobs/ihhqrtd2kf9lyoc0/artifacts/patcher-other.exe) |
+| GoG, version b192 | [patcher-gog](https://ci.appveyor.com/api/buildjobs/dev9dx6vsg3sj131/artifacts/patcher-gog.exe) |
+| Steam & CD, version b192 | [patcher-other](https://ci.appveyor.com/api/buildjobs/dev9dx6vsg3sj131/artifacts/patcher-other.exe) |
 
 ## How to uninstall?
 
