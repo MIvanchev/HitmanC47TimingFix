@@ -977,6 +977,8 @@ static bool createBackup(void)
     wcscat(buf, pathSep);
     wcscat(buf, bkpFilename);
 
+    SetLastError(ERROR_SUCCESS);
+   
     handle = CreateFile(buf,
                         GENERIC_READ | GENERIC_WRITE, 0, NULL,
                         OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
