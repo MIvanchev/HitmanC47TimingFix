@@ -577,7 +577,7 @@ static bool readFile(struct PatchedFile *file)
     wchar_t *nameInFsCase;
     const wchar_t *ptr;
     HANDLE handle;
-    size_t sizeInBytes;
+    size_t sizeInBytes = 0;
     void *data;
     DWORD bytesRead;
     char checksum[33];
@@ -760,7 +760,7 @@ static bool readFileFromBackup(mz_zip_archive *arch,
     char *nameUtf8;
     DWORD nameUtf8Len;
     void *data;
-    size_t sizeInBytes;
+    size_t sizeInBytes = 0;
     char checksum[33];
 
     _static_assert(BUFLEN(checksum) == 33);
@@ -939,7 +939,7 @@ static bool createBackup(void)
     void *data;
     DWORD sizeInBytesLoWord;
     DWORD sizeInBytesHiWord;
-    size_t sizeInBytes;
+    size_t sizeInBytes = 0;
     DWORD bytesRead;
     struct PatchedFile *file;
     mz_zip_archive arch;
